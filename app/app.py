@@ -101,8 +101,10 @@ def login():
         if user and Hasher.verify(user["pwhash"], password):
             login_user(User(username, user["pwhash"]))
             return redirect("/")
+        elif not user:
+            abort(401, "User not found")
         else:
-            abort(401)
+            abort(401, "Incorrect password")
 
 
 @app.route("/register", methods=["GET", "POST"])
