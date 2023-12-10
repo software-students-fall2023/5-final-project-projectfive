@@ -2,7 +2,7 @@
 
 from os import path, environ
 from base64 import b64decode
-from flask import Flask, render_template, request, redirect
+from flask import Flask, abort, render_template, request, redirect
 from flask_login import (
     login_required,
     login_user,
@@ -12,6 +12,9 @@ from flask_login import (
     UserMixin,
 )
 import pymongo
+import argon2
+
+Hasher = argon2.PasswordHasher().from_parameters(argon2.profiles.RFC_9106_LOW_MEMORY)
 
 TFs = {
     "True": True,
@@ -27,8 +30,7 @@ def should_debug() -> bool:
     """Returns True if the DEBUG environment variable is set to a truthy value."""
     if environ.get("DEBUG") in TFs:
         return TFs[environ.get("DEBUG")]
-    else:
-        raise ValueError("Unknown value for DEBUG environment variable.")
+    raise ValueError("Unknown value for DEBUG environment variable.")
 
 
 DB = None
@@ -49,15 +51,16 @@ def main():
         f"mongodb://{environ.get('MONGO_USERNAME')}:{environ.get('MONGO_PASSWORD')}@mongo"
     )
     DB = client["DB"]
+    # SECURITY: Production will use SSL. This is only for development.
     app.run(host="0.0.0.0", port=80, debug=should_debug())
 
 
 class User(UserMixin):
     """User class for flask_login."""
 
-    def __init__(self, username, hash):
+    def __init__(self, username, pwhash):
         self.username = username
-        self.hash = hash
+        self.pwhash = pwhash
 
     def get_id(self):
         # NOTE: This is a string, not an ObjectId, usernames are guaranteed unique
@@ -66,10 +69,10 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(username):
-    """ORM to load user from DB."""
+    """Load user from DB."""
     user = DB.users.find_one({"username": username})
     if user:
-        return User(user["username"], user["hash"])
+        return User(user["username"], user["pwhash"])
     else:
         return None
 
@@ -78,7 +81,6 @@ def load_user(username):
 def unauthorized():
     """Redirect unauthorized users to login page.
     Triggered by @login_required decorator."""
-    # TODO: Make login template with extra hyperlink to register user.
     return redirect("/login")
 
 
@@ -88,13 +90,42 @@ def login():
     to go to the account registration page."""
     if request.method == "GET":
         return render_template("login.html")
-    elif request.method == "POST":
+    if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
         if not username or not password:
-            return 400  # bad request
+            abort(400, "Missing username or password")  # bad request
         user = DB.users.find_one({"username": username})
-        # TODO: Finish authentication
+        if user and Hasher.verify(user["pwhash"], password):
+            login_user(User(username, user["pwhash"]))
+            return redirect("/")
+        else:
+            abort(401)
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    """Invites users to register an account."""
+    if request.method == "GET":
+        return render_template("register.html")
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        if not username or not password:
+            abort(400, "Missing username or password")
+        elif DB.users.find_one({"username": username}):
+            abort(409, "Username already taken")
+        else:
+            DB.users.insert_one({"username": username, "pwhash": Hasher.hash(password)})
+            return redirect("/login")
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    """Logs out the user."""
+    logout_user()
+    return redirect("/login")
 
 
 @app.route("/")
