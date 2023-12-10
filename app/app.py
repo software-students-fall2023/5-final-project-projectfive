@@ -1,6 +1,7 @@
 """Main application file for the Flask app."""
 
 from os import path, environ
+from sys import stderr
 from base64 import b64decode
 from flask import Flask, abort, render_template, request, redirect
 from flask_login import (
@@ -28,9 +29,10 @@ TFs = {
 
 def should_debug() -> bool:
     """Returns True if the DEBUG environment variable is set to a truthy value."""
-    if environ.get("DEBUG") in TFs:
+    try:
         return TFs[environ.get("DEBUG")]
-    raise ValueError("Unknown value for DEBUG environment variable.")
+    except KeyError:
+        print("Unknown value for DEBUG environment variable.", file=stderr)
 
 
 DB = None
