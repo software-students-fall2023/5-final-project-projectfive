@@ -2,7 +2,11 @@
 
 from os import path, environ
 from sys import stderr
+import datetime
 from base64 import b64decode
+import base62
+import pymongo
+import argon2
 
 from flask import Flask, abort, render_template, request, redirect
 from flask_login import (
@@ -18,9 +22,7 @@ from bson.objectid import ObjectId
 oidtob62 = lambda oid: base62.encodebytes(oid.binary)
 b62tooid = lambda b62: ObjectId(base62.decodebytes(b62).hex())
 
-import base62
-import pymongo
-import argon2
+
 
 Hasher = argon2.PasswordHasher().from_parameters(argon2.profiles.RFC_9106_LOW_MEMORY)
 
@@ -113,10 +115,31 @@ def login():
         else:
             abort(401, "Incorrect password")
 
+@app.route("/change_password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    """Accessible from index.html.
+    Allows users to change their password."""
+    if request.method == "GET":
+        return render_template("change_password.html")
+    if request.method == "POST":
+        old_password = request.form.get("old_password")
+        new_password = request.form.get("new_password")
+        if not old_password or not new_password:
+            abort(400, "Missing old or new password")
+        if not Hasher.verify(current_user.pwhash, old_password):
+            abort(401, "Incorrect password")
+        DB.users.update_one(
+            {"username": current_user.username},
+            {"$set": {"pwhash": Hasher.hash(new_password)}},
+        )
+        return redirect("/logout")
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    """Invites users to register an account."""
+    """Accessible from login.html.
+    Invites users to register an account."""
     if request.method == "GET":
         return render_template("register.html")
     if request.method == "POST":
@@ -134,7 +157,8 @@ def register():
 @app.route("/logout")
 @login_required
 def logout():
-    """Logs out the user."""
+    """Accessible from index.html.
+    Logs out the user."""
     logout_user()
     return redirect("/login")
 
@@ -145,67 +169,142 @@ def index():
     """Homepage, gives options to choose a plan/draft or create a new plan"""
     # Find all plans with the flag "delete_me" set to True (cleans up interrupted sessions)
     DB.plans.delete_many({"username": current_user.username, "delete_me": True})
-    vars = {"username": current_user.username}
-    vars["plans"] = DB.plans.find({"username": current_user.username, "draft": False})
-    vars["drafts"] = DB.plans.find({"username": current_user.username, "draft": True})
-    for key in vars.keys():
-        for item in vars[key]:
-            item["id"] = oidtob62(item["_id"])
-    return render_template("index.html", **vars)
+    params = {"username": current_user.username}
+    params["plans"] = DB.plans.find(
+        {"username": current_user.username, "draft": False}
+    ).sort("created", -1)
+    params["drafts"] = DB.plans.find(
+        {"username": current_user.username, "draft": True}
+    ).sort("created", -1)
+    for plan_type in ("plans", "drafts"):
+        for plan in params[plan_type]:
+            plan["id"] = oidtob62(plan["_id"])
+    return render_template("index.html", **params)
 
 @app.route("/plan/<plan_id>")
 @login_required
-def plan(plan_id):
-    """View a plan."""
+def view_plan(plan_id):
+    """Accessible from index.html, or after certain actions.
+    Views a plan if possible.
+    If plan is a draft, a button to edit the draft is shown.
+    If plan is a draft, unlocked, or reached the unlock time, show a delete button."""
     plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
     if not plan:
         abort(404, "Plan not found")
     if plan["private"] and plan["username"] != current_user.username:
         abort(403, "Plan is private")
+    if plan["locked"] and datetime.datetime.now() < plan["unlock_at"]:
+        unlock_time = plan["unlock_at"].strftime("%Y-%m-%d %H:%M:%S")
+        plan["content"] = f"This plan is locked until {unlock_time}"
     return render_template("plan.html", **plan)
+
+@app.route("/delete_plan/<plan_id>")
+@login_required
+def delete_plan(plan_id):
+    """Delete a plan."""
+    plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
+    if not plan:
+        abort(404, "Plan not found")
+    if plan["username"] != current_user.username:
+        abort(403, "You do not own this plan")
+    if plan["draft"] or not plan["locked"] or (plan["locked"] and 
+        datetime.datetime.now() > plan["unlock_at"]):
+        # Plan is eligible for deletion
+        DB.plans.delete_one({"_id": b62tooid(plan_id)})
+    return redirect("/")
 
 @app.route("/create_plan", methods=["GET"])
 @login_required
 def create_plan():
-    """Page to create a new plan."""
+    """Accessible from index.html.
+    Page to create a new plan."""
     if request.method == "GET":
         return render_template("create_plan.html")
+
+@app.route("/edit_plan/<plan_id>")
+@login_required
+def edit_plan(plan_id):
+    """Accessible from plan.html.
+    Edit a draft plan."""
+    plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
+    if not plan:
+        abort(404, "Plan not found")
+    if plan["username"] != current_user.username:
+        abort(403, "You do not own this plan")
+    if not plan["draft"]:
+        abort(400, "This is not a draft plan")
+    return render_template("edit_plan.html", **plan)
+
+@app.route("/save_draft", methods=["POST"])
+@login_required
+def save_draft():
+    """Updates existing draft with new draft data (does not create new one).
+    Reached from edit_plan.html"""
+    name = request.form.get("name")
+    content = request.form.get("content")
+    if not name:
+        abort(400, "Missing name")
+    if not content:
+        abort(400, "Missing content")
+    DB.plans.update_one(
+        {"_id": b62tooid(request.form.get("id"))},
+        {"$set": {"name": name, "content": content}},
+    )
+    return redirect("/")
+
+@app.route("/finalize_draft", methods=["POST"])
+@login_required
+def finalize_draft():
+    """Accessible via "save as file" button on edit_plan.html.
+    Turns a draft into a published plan. Creation time is set when finalized."""
+    name = request.form.get("name")
+    content = request.form.get("content")
+    if not name:
+        abort(400, "Missing name")
+    if not content:
+        abort(400, "Missing content")
+    DB.plans.update_one(
+        {"_id": b62tooid(request.form.get("id"))},
+        {"$set": {"name": name, "content": content}},
+    )
+    return redirect(f"/settings/{request.form.get("id")}")
 
 @app.route("/submit_plan", methods=["POST"])
 @login_required
 def submit_plan():
-    """Submit plan and redirect to settings of plan."""
-    if request.method == "POST":
-        name = request.form.get("name")
-        content = request.form.get("content")
-        draft = request.form.get("draft") == "Yes"
-        if not name:
-            abort(400, "Missing name")
-        if not content:
-            abort(400, "Missing content")
-        if draft:
-            oid = DB.plans.insert_one(
-                {
-                    "username": current_user.username,
-                    "name": name,
-                    "content": content,
-                    "draft": True,
-                    "private": False,
-                    "delete_me": False,
-                }
-            ).inserted_id
-            return redirect("/")
+    """Accessible via "save as file" button on create_plan.html.
+    Submit plan and redirect to settings of plan."""
+    name = request.form.get("name")
+    content = request.form.get("content")
+    draft = request.form.get("draft") == "Yes"
+    if not name:
+        abort(400, "Missing name")
+    if not content:
+        abort(400, "Missing content")
+    if draft:
         oid = DB.plans.insert_one(
             {
                 "username": current_user.username,
                 "name": name,
                 "content": content,
-                "draft": False,
+                "draft": True,
                 "private": False,
-                "delete_me": True,
+                "delete_me": False,
             }
         ).inserted_id
-        return redirect(f"/settings/{oidtob62(oid)}")
+        return redirect(f"/plan/{oidtob62(oid)}")
+    # Plan is already finalized, insert directly
+    oid = DB.plans.insert_one(
+        {
+            "username": current_user.username,
+            "name": name,
+            "content": content,
+            "draft": False,
+            "private": False,
+            "delete_me": True,
+        }
+    ).inserted_id
+    return redirect(f"/settings/{oidtob62(oid)}")
 
 @app.route("/settings/<plan_id>", methods=["GET", "POST"])
 @login_required
@@ -230,4 +329,44 @@ def settings(plan_id):
             return redirect(f"/set_lock/{plan_id}")
         else:
             # Plan is finalized
-            DB.plan.update_one({"_id": b62tooid(plan_id)}, {"$set": {"delete_me": False}})
+            DB.plan.update_one(
+                {"_id": b62tooid(plan_id)},
+                {"$set": {
+                    "locked": False, 
+                    "delete_me": False, 
+                    "created": datetime.datetime.now(),
+                    "draft": False,
+                }},
+            )
+
+@app.route("/set_lock/<plan_id>", methods=["GET", "POST"])
+@login_required
+def set_lock(plan_id):
+    """Page to set lock duration."""
+    plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
+    if not plan:
+        abort(404, "Plan not found")
+    if plan["username"] != current_user.username:
+        abort(403, "You do not own this plan")
+    if request.method == "GET":
+        return render_template("set_lock.html", **plan)
+    if request.method == "POST":
+        # In days
+        duration = request.form.get("duration")
+        if not duration:
+            abort(400, "Missing duration")
+        timenow = datetime.datetime.now()
+        duration = datetime.timedelta(days=int(duration))
+        # Plan is finalized
+        DB.plans.update_one(
+            {"_id": b62tooid(plan_id)},
+            {"$set": {
+                "locked": True,
+                "duration": duration,
+                "created": timenow,
+                "unlock_at": timenow + duration,
+                "draft": False,
+                "delete_me": False,
+            }},
+        )
+        return redirect("/")
