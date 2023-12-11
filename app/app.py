@@ -3,6 +3,7 @@
 from os import path, environ
 from sys import stderr
 from base64 import b64decode
+
 from flask import Flask, abort, render_template, request, redirect
 from flask_login import (
     login_required,
@@ -12,6 +13,12 @@ from flask_login import (
     LoginManager,
     UserMixin,
 )
+
+from bson.objectid import ObjectId
+oidtob62 = lambda oid: base62.encodebytes(oid.binary)
+b62tooid = lambda b62: ObjectId(base62.decodebytes(b62).hex())
+
+import base62
 import pymongo
 import argon2
 
@@ -136,5 +143,91 @@ def logout():
 @login_required
 def index():
     """Homepage, gives options to choose a plan/draft or create a new plan"""
-    # TODO: Define variables for rendering index.html
-    return render_template("index.html")
+    # Find all plans with the flag "delete_me" set to True (cleans up interrupted sessions)
+    DB.plans.delete_many({"username": current_user.username, "delete_me": True})
+    vars = {"username": current_user.username}
+    vars["plans"] = DB.plans.find({"username": current_user.username, "draft": False})
+    vars["drafts"] = DB.plans.find({"username": current_user.username, "draft": True})
+    for key in vars.keys():
+        for item in vars[key]:
+            item["id"] = oidtob62(item["_id"])
+    return render_template("index.html", **vars)
+
+@app.route("/plan/<plan_id>")
+@login_required
+def plan(plan_id):
+    """View a plan."""
+    plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
+    if not plan:
+        abort(404, "Plan not found")
+    if plan["private"] and plan["username"] != current_user.username:
+        abort(403, "Plan is private")
+    return render_template("plan.html", **plan)
+
+@app.route("/create_plan", methods=["GET"])
+@login_required
+def create_plan():
+    """Page to create a new plan."""
+    if request.method == "GET":
+        return render_template("create_plan.html")
+
+@app.route("/submit_plan", methods=["POST"])
+@login_required
+def submit_plan():
+    """Submit plan and redirect to settings of plan."""
+    if request.method == "POST":
+        name = request.form.get("name")
+        content = request.form.get("content")
+        draft = request.form.get("draft") == "Yes"
+        if not name:
+            abort(400, "Missing name")
+        if not content:
+            abort(400, "Missing content")
+        if draft:
+            oid = DB.plans.insert_one(
+                {
+                    "username": current_user.username,
+                    "name": name,
+                    "content": content,
+                    "draft": True,
+                    "private": False,
+                    "delete_me": False,
+                }
+            ).inserted_id
+            return redirect("/")
+        oid = DB.plans.insert_one(
+            {
+                "username": current_user.username,
+                "name": name,
+                "content": content,
+                "draft": False,
+                "private": False,
+                "delete_me": True,
+            }
+        ).inserted_id
+        return redirect(f"/settings/{oidtob62(oid)}")
+
+@app.route("/settings/<plan_id>", methods=["GET", "POST"])
+@login_required
+def settings(plan_id):
+    """Settings page for a plan."""
+    plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
+    if not plan:
+        abort(404, "Plan not found")
+    if plan["username"] != current_user.username:
+        abort(403, "You do not own this plan")
+    if request.method == "GET":
+        return render_template("settings.html", **plan)
+    if request.method == "POST":
+        private = request.form.get("private") == "Yes"
+        locked = request.form.get("locked") == "Yes"
+        DB.plans.update_one(
+            {"_id": b62tooid(plan_id)},
+            {"$set": {"private": private, "locked": locked}},
+        )
+        if locked:
+            # Need to get lock duration from user
+            return redirect(f"/set_lock/{plan_id}")
+        else:
+            # Plan is finalized
+            DB.plan.update_one({"_id": b62tooid(plan_id)}, {"$set": {"delete_me": False}})
