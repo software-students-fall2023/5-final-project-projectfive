@@ -22,8 +22,6 @@ from bson.objectid import ObjectId
 oidtob62 = lambda oid: base62.encodebytes(oid.binary)
 b62tooid = lambda b62: ObjectId(base62.decodebytes(b62).hex())
 
-
-
 Hasher = argon2.PasswordHasher().from_parameters(argon2.profiles.RFC_9106_LOW_MEMORY)
 
 TFs = {
@@ -48,7 +46,6 @@ DB = None
 
 template_dir = path.abspath("./templates")
 static_dir = path.abspath("./static")
-
 login_manager = LoginManager()
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 app.secret_key = environ.get(b64decode(bytes(environ.get("FLASK_SECRET_KEY"), "utf-8")))
