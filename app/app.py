@@ -207,7 +207,7 @@ def delete_plan(plan_id):
         abort(404, "Plan not found")
     if plan["username"] != current_user.username:
         abort(403, "You do not own this plan")
-    if plan["draft"] or not plan["locked"] or (plan["locked"] and 
+    if plan["draft"] or not plan["locked"] or (plan["locked"] and
         datetime.datetime.now() > plan["unlock_at"]):
         # Plan is eligible for deletion
         DB.plans.delete_one({"_id": b62tooid(plan_id)})
