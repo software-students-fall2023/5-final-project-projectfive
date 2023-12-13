@@ -5,7 +5,7 @@ from sys import stderr
 import datetime
 from base64 import b64decode
 import base62
-import pymongo
+from pymongo import MongoClient
 import argon2
 
 from flask import Flask, abort, render_template, request, redirect
@@ -43,24 +43,23 @@ def should_debug() -> bool:
 
 
 DB = None
-
+login_manager = LoginManager()
 template_dir = path.abspath("./templates")
 static_dir = path.abspath("./static")
-login_manager = LoginManager()
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
-app.secret_key = environ.get(b64decode(bytes(environ.get("FLASK_SECRET_KEY"), "utf-8")))
+app.secret_key = b64decode(environ.get("FLASK_SECRET_KEY"))
 login_manager.init_app(app)
 
 
 def main():
     """Connect to DB and run app."""
     global DB
-    client = pymongo.MongoClient(
+    client = MongoClient(
         f"mongodb://{environ.get('MONGO_USERNAME')}:{environ.get('MONGO_PASSWORD')}@mongo"
     )
     DB = client["DB"]
     # SECURITY: Production will use SSL. This is only for development.
-    app.run(host="0.0.0.0", port=80, debug=should_debug())
+    app.run(host="0.0.0.0", port=443, debug=should_debug())
 
 
 class User(UserMixin):
@@ -159,7 +158,6 @@ def logout():
     logout_user()
     return redirect("/login")
 
-
 @app.route("/")
 @login_required
 def index():
@@ -177,6 +175,7 @@ def index():
         for plan in params[plan_type]:
             plan["id"] = oidtob62(plan["_id"])
     return render_template("index.html", **params)
+
 
 @app.route("/plan/<plan_id>")
 @login_required
