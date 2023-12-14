@@ -1,5 +1,6 @@
 import smtplib
 import time
+from os import environ
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from pymongo import MongoClient
@@ -15,7 +16,7 @@ plans_collection = db['plans']
 
 def send_plan_content_email(to_email, content):
     sender_email = "writeyourplan@gmail.com"
-    sender_password = "wmih yhre hcbx lvro"
+    sender_password = environ.get("NOTIFIER_EMAIL_PASSWORD")
 
     # Create the MIMEText object
     msg = MIMEMultipart()
