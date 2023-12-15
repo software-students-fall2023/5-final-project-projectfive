@@ -263,7 +263,7 @@ def finalize_draft():
         {"_id": b62tooid(request.form.get("id"))},
         {"$set": {"name": name, "content": content}},
     )
-    return redirect(f"/settings/{request.form.get("id")}")
+    return redirect(f"/settings/{request.form.get('id')}")
 
 @app.route("/submit_plan", methods=["POST"])
 @login_required
