@@ -83,7 +83,7 @@ def test_unauthorized():
     assert response.status_code == 302
 
 
-# TODO: Need login.html
+# NOTE: blocked on login.html
 # def test_login_get(client):
 #     response = client.get("/login")
 #     assert response.status_code >= 200
@@ -95,8 +95,35 @@ def test_login_post_bad_request(client):
     assert b"Missing username or password" in response.data
 
 
-def test_login_post(client):
-    pass
+# def test_login_post(client, monkeypatch):
+    
+#     app.DB = mongomock.MongoClient().users
+
+#     def mock_find_one(*args, **kwargs):
+#         return {"username": "test_user", "pwhash": "test_pwhash"}
+    
+#     def mock_verify(*args, **kwargs):
+#         return True
+    
+#     def mock_login_user(*args,**kwargs):
+#         return True
+    
+#     monkeypatch.setattr(app.DB.users, "find_one", mock_find_one)
+#     monkeypatch.setattr(Hasher, "verify", mock_verify)
+#     monkeypatch.setattr(app, "login_user", mock_login_user)
+
+#     response = client.post("/login", data = {"username":"test_user", "password":"test_password"})
+
+#TODO: update final assertion when change_password.html gets added fr
+def test_change_password_get(client):
+    response = client.get("/change_password")
+    assert response.status_code == 302
+    assert b"" in response.data
+
+def test_change_password_post_bad_request(client):
+    response = client.post("/change_password",data={})
+    assert response.status_code == 400
+    assert b"Missing old or new password" in response.data
 
 
 def test_logout(client, monkeypatch):
@@ -106,3 +133,24 @@ def test_logout(client, monkeypatch):
     monkeypatch.setattr(app, "logout_user", mock_logout_user)
     response = client.get("/logout")
     assert response.status_code == 302
+
+#low coverage of index(). May need a revisit at a later date
+def test_index(client,monkeypatch):
+    app.DB = mongomock.MongoClient().plans
+
+    def mock_delete_many(*args, **kwargs):
+        pass
+
+    def mock_find(*args,**kwargs):
+        return None
+
+    monkeypatch.setattr(app.DB.plans, "delete_many", mock_delete_many)
+    monkeypatch.setattr(app.DB.plans, "find", mock_find)
+
+    response = client.get("/", data = {"username":"test_user"})
+    assert response.status_code == 302
+    assert b"" in response.data
+
+
+def test_view_plan():
+    pass
