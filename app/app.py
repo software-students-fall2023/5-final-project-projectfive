@@ -91,6 +91,25 @@ def unauthorized():
     return redirect("/login")
 
 
+# @app.route("/login", methods=["GET", "POST"])
+# def login():
+#     """Invites users to login or click a button
+#     to go to the account registration page."""
+#     if request.method == "GET":
+#         return render_template("login.html")
+#     if request.method == "POST":
+#         username = request.form.get("username")
+#         password = request.form.get("password")
+#         if not username or not password:
+#             abort(400, "Missing username or password")  # bad request
+#         user = DB.users.find_one({"username": username})
+#         if user and Hasher.verify(user["pwhash"], password):
+#             login_user(User(username, user["pwhash"]))
+#             return redirect("/")
+#         elif not user:
+#             abort(401, "User not found")
+#         else:
+#             abort(401, "Incorrect password")
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """Invites users to login or click a button
@@ -98,17 +117,20 @@ def login():
     if request.method == "GET":
         return render_template("login.html")
     if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        if not username or not password:
+        username_in_form = request.form.get("username")
+        password_in_form = request.form.get("password")
+        if not username_in_form or not password_in_form:
             abort(400, "Missing username or password")  # bad request
-        user = DB.users.find_one({"username": username})
-        if user and Hasher.verify(user["pwhash"], password):
-            login_user(User(username, user["pwhash"]))
-            return redirect("/")
-        elif not user:
-            abort(401, "User not found")
-        else:
+        user_found = DB.users.find_one({"username": username_in_form})
+        try:
+            if user_found and Hasher.verify(user_found["pwhash"], password_in_form):
+                login_user(User(username_in_form, user_found["pwhash"]))
+                return redirect("/")
+            elif not user_found:
+                abort(401, "User not found")
+            else:
+                abort(500, "Unknown error")
+        except argon2.exceptions.VerifyMismatchError:
             abort(401, "Incorrect password")
 
 @app.route("/change_password", methods=["GET", "POST"])
