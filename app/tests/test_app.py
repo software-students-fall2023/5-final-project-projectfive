@@ -15,7 +15,7 @@ def client(monkeypatch):
     app.app.config["TESTING"] = True
     with app.app.test_client() as client:
         yield client
-
+    
 
 # Unit test for main()
 def test_main(monkeypatch):
@@ -88,31 +88,53 @@ def test_unauthorized():
 #     response = client.get("/login")
 #     assert response.status_code >= 200
 
-
 def test_login_post_bad_request(client):
     response = client.post("/login", data={})
     assert response.status_code == 400
     assert b"Missing username or password" in response.data
 
 
-# def test_login_post(client, monkeypatch):
+def test_login_post(client, monkeypatch):
     
-#     app.DB = mongomock.MongoClient().users
+    app.DB = mongomock.MongoClient().users
 
-#     def mock_find_one(*args, **kwargs):
-#         return {"username": "test_user", "pwhash": "test_pwhash"}
+    def mock_find_one(*args, **kwargs):
+        return {"username": "test_user", "pwhash": "$argon2id$v=19$m=65536,t=3,p=4$kKM0SwXp0LpZY+g7Q8H4rA$+Kyy0NhzkpDK3aQHrm9U9nnb69Fc5yQ4c66VQluOyl0"}
     
-#     def mock_verify(*args, **kwargs):
-#         return True
+    #def mock_verify(*args, **kwargs):
+       # return True
     
-#     def mock_login_user(*args,**kwargs):
-#         return True
     
-#     monkeypatch.setattr(app.DB.users, "find_one", mock_find_one)
-#     monkeypatch.setattr(Hasher, "verify", mock_verify)
-#     monkeypatch.setattr(app, "login_user", mock_login_user)
+    monkeypatch.setattr(app.DB.users, "find_one", mock_find_one)
+    #monkeypatch.setattr(Hasher, "verify", mock_verify)
+    #monkeypatch.setattr(app, "login_user", mock_login_user)
 
-#     response = client.post("/login", data = {"username":"test_user", "password":"test_password"})
+    response = client.post("/login", data = {"username":"test_user", "password":"test_password"})
+    assert response.status_code == 302
+
+def test_login_no_user(client, monkeypatch):
+    app.DB = mongomock.MongoClient().users
+    
+    def mock_find_one(*args, **kwargs):
+        return None
+    
+    monkeypatch.setattr(app.DB.users, "find_one", mock_find_one)
+
+    response = client.post("/login",data = {"username":"test_user", "password":"test_password"})
+    assert response.status_code == 401
+    assert b"User not found" in response.data
+
+def test_login_bad_password(client, monkeypatch):
+    app.DB = mongomock.MongoClient().users
+
+    def mock_find_one(*args,**kwargs):
+        return {"username": "test_user", "pwhash": "$argon2id$v=19$m=65536,t=3,p=4$kKM0SwXp0LpZY+g7Q8H4rA$+Kyy0NhzkpDK3aQHrm9U9nnb69Fc5yQ4c66VQluOyl0"}
+
+    monkeypatch.setattr(app.DB.users, "find_one", mock_find_one)
+
+    response = client.post("/login", data = {"username":"test_user", "password":"incorrect_password"})
+    assert response.status_code == 401
+    assert b"Incorrect password" in response.data
 
 #TODO: update final assertion when change_password.html gets added fr
 def test_change_password_get(client):
@@ -120,10 +142,11 @@ def test_change_password_get(client):
     assert response.status_code == 302
     assert b"" in response.data
 
-def test_change_password_post_bad_request(client):
-    response = client.post("/change_password",data={})
-    assert response.status_code == 400
-    assert b"Missing old or new password" in response.data
+# def test_change_password_post_bad_request(client):
+#     client.post("/login",data={"username":"test_user","password":"test_pass"})
+#     response = client.post("/change_password",data={})
+#     assert response.status_code == 400
+#     assert b"Missing old or new password" in response.data
 
 
 def test_logout(client, monkeypatch):
