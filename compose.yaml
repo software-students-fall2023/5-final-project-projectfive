@@ -1,4 +1,12 @@
 services:
+  notifier:
+    image: teamprojectfive/notifier:latest
+    environment:
+      - MONGO_USERNAME=${MONGO_USERNAME}
+      - MONGO_PASSWORD=${MONGO_PASSWORD}
+    depends_on:
+      - mongo
+      - app
   app:
     image: teamprojectfive/app:latest
     ports:
@@ -10,6 +18,7 @@ services:
       - MONGO_PASSWORD=${MONGO_PASSWORD}
     depends_on:
       - mongo
+
   mongo:
     image: mongo:latest
     container_name: mongo
