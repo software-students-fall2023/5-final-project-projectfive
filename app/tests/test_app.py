@@ -93,9 +93,10 @@ def test_unauthorized():
 
 
 # NOTE: blocked on login.html
-# def test_login_get(client):
-#     response = client.get("/login")
-#     assert response.status_code >= 200
+def test_login_get(client):
+    response = client.get("/login")
+    assert response.status_code >= 200
+
 
 def test_login_post_bad_request(client):
     response = client.post("/login", data={})
@@ -145,17 +146,104 @@ def test_login_bad_password(client, monkeypatch):
     assert response.status_code == 401
     assert b"Incorrect password" in response.data
 
+
 #TODO: update final assertion when change_password.html gets added fr
-def test_change_password_get(client):
+def test_change_password_get(client,monkeypatch):
+    app.DB = mongomock.MongoClient().users
+    def mock_find_one(*args, **kwargs):
+        return {"username": "test_user", "pwhash": "$argon2id$v=19$m=65536,t=3,p=4$kKM0SwXp0LpZY+g7Q8H4rA$+Kyy0NhzkpDK3aQHrm9U9nnb69Fc5yQ4c66VQluOyl0"}
+    monkeypatch.setattr(app.DB.users, "find_one", mock_find_one)
+    client.post("/login",data={"username":"test_user","password":"test_password"})
     response = client.get("/change_password")
     assert response.status_code == 302
     assert b"" in response.data
 
-# def test_change_password_post_bad_request(client):
-#     client.post("/login",data={"username":"test_user","password":"test_pass"})
-#     response = client.post("/change_password",data={})
-#     assert response.status_code == 400
-#     assert b"Missing old or new password" in response.data
+
+def test_change_password_post_bad_request(client, monkeypatch):
+    app.DB = mongomock.MongoClient().users
+
+    def mock_find_one(*args, **kwargs):
+        return {
+            "username": "test_user",
+            "pwhash": "$argon2id$v=19$m=65536,t=3,p=4$kKM0SwXp0LpZY+g7Q8H4rA$+Kyy0NhzkpDK3aQHrm9U9nnb69Fc5yQ4c66VQluOyl0",
+        }
+
+    monkeypatch.setattr(app.DB.users, "find_one", mock_find_one)
+    client.post("/login", data={"username": "test_user", "password": "test_password"})
+
+    response = client.post("/change_password", data={})
+    assert response.status_code == 400
+    assert b"Missing old or new password" in response.data
+
+
+# NOTE: This increases coverage by a single line, requires refactoring to error handle in app.py
+# def test_change_password_post_wrong_pass(client,monkeypatch):
+#     app.DB = mongomock.MongoClient().users
+
+#     def mock_find_one(*args, **kwargs):
+#         return {
+#             "username": "test_user",
+#             "pwhash": "$argon2id$v=19$m=65536,t=3,p=4$kKM0SwXp0LpZY+g7Q8H4rA$+Kyy0NhzkpDK3aQHrm9U9nnb69Fc5yQ4c66VQluOyl0",
+#         }
+
+#     monkeypatch.setattr(app.DB.users, "find_one", mock_find_one)
+#     client.post("/login", data={"username": "test_user", "password": "test_password"})
+
+#     response = client.post("/change_password", data = {"username":"test_user", "old_password":"wrong_password", "new_password":"new_password"})
+
+
+def test_change_password_valid(client, monkeypatch):
+    app.DB = mongomock.MongoClient().users
+
+    def mock_find_one(*args, **kwargs):
+        return {
+            "username": "test_user",
+            "pwhash": "$argon2id$v=19$m=65536,t=3,p=4$kKM0SwXp0LpZY+g7Q8H4rA$+Kyy0NhzkpDK3aQHrm9U9nnb69Fc5yQ4c66VQluOyl0",
+        }
+
+    monkeypatch.setattr(app.DB.users, "find_one", mock_find_one)
+    client.post("/login", data={"username": "test_user", "password": "test_password"})
+
+    def mock_update_one(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(app.DB.users, "update_one", mock_update_one)
+
+    response = client.post(
+        "/change_password",
+        data={
+            "username": "test_user",
+            "old_password": "test_password",
+            "new_password": "new_password",
+        },
+    )
+    assert response.status_code == 302
+
+
+# TODO: Need register.html
+def test_register(client):
+    response = client.get("/register")
+    assert response.status_code == 302
+
+
+def test_register_bad_request(client):
+    response = client.post("/register", data={})
+    assert response.status_code == 400
+
+
+def test_register_user_taken(client, monkeypatch):
+    app.DB = mongomock.MongoClient().users
+
+    def mock_find_one(*args, **kwargs):
+        return True
+
+    monkeypatch.setattr(app.DB.users, "find_one", mock_find_one)
+    response = client.post(
+        "/register", data={"username": "test_user", "password": "test_pass"}
+    )
+
+    assert response.status_code == 409
+    assert b"Username already taken" in response.data
 
 
 def test_logout(client, monkeypatch):
@@ -304,22 +392,22 @@ def test_edit_plan_not_draft(mock_b62tooid, client, monkeypatch):
     response = client.get('/edit_plan/draft_plan_id')
     assert response.status_code == 400
 
-# # Test: Successful Plan Editing - template problem
-# @patch('app.b62tooid')
-# def test_edit_plan_success(mock_b62tooid, client, monkeypatch):
-#     # Mock  database
-#     app.DB = mongomock.MongoClient().db
+# Test: Successful Plan Editing - template problem
+@patch('app.b62tooid')
+def test_edit_plan_success(mock_b62tooid, client, monkeypatch):
+    # Mock  database
+    app.DB = mongomock.MongoClient().db
     
-#     # Login before find plan
-#     def mock_find_one_user(*args, **kwargs):
-#         return {"username": "test_user", "pwhash": "$argon2id$v=19$m=65536,t=3,p=4$kKM0SwXp0LpZY+g7Q8H4rA$+Kyy0NhzkpDK3aQHrm9U9nnb69Fc5yQ4c66VQluOyl0"}
-#     monkeypatch.setattr(app.DB.users, "find_one", mock_find_one_user)
-#     client.post("/login", data={"username": "test_user", "password": "test_password"})
+    # Login before find plan
+    def mock_find_one_user(*args, **kwargs):
+        return {"username": "test_user", "pwhash": "$argon2id$v=19$m=65536,t=3,p=4$kKM0SwXp0LpZY+g7Q8H4rA$+Kyy0NhzkpDK3aQHrm9U9nnb69Fc5yQ4c66VQluOyl0"}
+    monkeypatch.setattr(app.DB.users, "find_one", mock_find_one_user)
+    client.post("/login", data={"username": "test_user", "password": "test_password"})
 
-#     monkeypatch.setattr(app.DB.plans, 'find_one', lambda x: {"_id": "draft_plan_id", "username": "test_user", "draft": True})
-#     response = client.get('/edit_plan/draft_plan_id')
-#     assert response.status_code == 200
-#     assert 'edit_plan.html' in response.data.decode()
+    monkeypatch.setattr(app.DB.plans, 'find_one', lambda x: {"_id": "draft_plan_id", "username": "test_user", "draft": True})
+    response = client.get('/edit_plan/draft_plan_id')
+    assert response.status_code == 200
+    assert 'edit_plan.html' in response.data.decode()
 
 @patch('app.b62tooid')
 def test_save_draft_missing_name(mock_b62tooid, client, monkeypatch):
