@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from notifier.notifier import send_plan_content_email, check_and_send_reminders
+from notifier import send_plan_content_email, check_and_send_reminders
 
 @pytest.fixture
 def mock_smtp():
@@ -32,7 +32,7 @@ def test_send_plan_content_email_failure(mock_smtp):
     assert mock_smtp.return_value.sendmail.called == True
     assert mock_smtp.return_value.quit.called == False
 
-@patch('notifier.notifier.plans_collection')
+@patch('notifier.plans_collection')
 def test_check_and_send_reminders(mock_plans_collection):
     mock_plans_collection.find.return_value = [
         {
