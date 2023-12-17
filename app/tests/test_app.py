@@ -7,7 +7,9 @@ from unittest.mock import patch
 import app
 
 # Import the Flask app
-
+@pytest.fixture(autouse=True)
+def testkey_set(monkeypatch):
+    monkeypatch.setenv("FLASK_SECRET_KEY","9QI/Hxgvzx1egF8J", prepend = False )
 
 # Create a test client
 @pytest.fixture
