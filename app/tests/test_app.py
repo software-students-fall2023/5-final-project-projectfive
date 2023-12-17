@@ -84,10 +84,10 @@ def test_unauthorized():
     assert response.status_code == 302
 
 
-# NOTE: blocked on login.html
-# def test_login_get(client):
-#     response = client.get("/login")
-#     assert response.status_code >= 200
+#NOTE: blocked on login.html
+def test_login_get(client):
+    response = client.get("/login")
+    assert response.status_code >= 200
 
 
 def test_login_post_bad_request(client):
@@ -151,16 +151,16 @@ def test_login_bad_password(client, monkeypatch):
     assert b"Incorrect password" in response.data
 
 
-# #TODO: update final assertion when change_password.html gets added fr
-# def test_change_password_get(client,monkeypatch):
-#     app.DB = mongomock.MongoClient().users
-#     def mock_find_one(*args, **kwargs):
-#         return {"username": "test_user", "pwhash": "$argon2id$v=19$m=65536,t=3,p=4$kKM0SwXp0LpZY+g7Q8H4rA$+Kyy0NhzkpDK3aQHrm9U9nnb69Fc5yQ4c66VQluOyl0"}
-#     monkeypatch.setattr(app.DB.users, "find_one", mock_find_one)
-#     client.post("/login",data={"username":"test_user","password":"test_password"})
-#     response = client.get("/change_password")
-#     assert response.status_code == 302
-#     assert b"" in response.data
+#TODO: update final assertion when change_password.html gets added fr
+def test_change_password_get(client,monkeypatch):
+    app.DB = mongomock.MongoClient().users
+    def mock_find_one(*args, **kwargs):
+        return {"username": "test_user", "pwhash": "$argon2id$v=19$m=65536,t=3,p=4$kKM0SwXp0LpZY+g7Q8H4rA$+Kyy0NhzkpDK3aQHrm9U9nnb69Fc5yQ4c66VQluOyl0"}
+    monkeypatch.setattr(app.DB.users, "find_one", mock_find_one)
+    client.post("/login",data={"username":"test_user","password":"test_password"})
+    response = client.get("/change_password")
+    assert response.status_code == 200
+    assert b"" in response.data
 
 
 def test_change_password_post_bad_request(client, monkeypatch):
@@ -224,10 +224,9 @@ def test_change_password_valid(client, monkeypatch):
     assert response.status_code == 302
 
 
-# TODO: Need register.html
-# def test_register(client):
-#     response = client.get("/register")
-#     assert response.status_code == 302
+def test_register(client):
+    response = client.get("/register")
+    assert response.status_code == 200
 
 
 def test_register_bad_request(client):
