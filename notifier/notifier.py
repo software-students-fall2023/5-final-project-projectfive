@@ -6,13 +6,16 @@ from email.mime.multipart import MIMEMultipart
 from pymongo import MongoClient
 
 # Create a connection to the MongoDB server
-client = MongoClient('mongodb://localhost:27017/')  # Replace with your MongoDB server connection details
+client = MongoClient(
+    f"mongodb://{environ.get('MONGO_USERNAME')}:{environ.get('MONGO_PASSWORD')}@mongo"
+)
+DB = client["DB"]
 
 # Select the database
-db = client['DB']
+
 
 # Create or select the 'plans' collection
-plans_collection = db['plans']
+plans_collection = DB['plans']
 
 def send_plan_content_email(to_email, content):
     sender_email = "writeyourplan@gmail.com"
