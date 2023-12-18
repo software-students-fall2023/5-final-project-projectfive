@@ -7,6 +7,7 @@ from base64 import b64decode
 import base62
 from pymongo import MongoClient
 import argon2
+from flask_cors import CORS, cross_origin
 
 from flask import Flask, abort, render_template, request, redirect
 from flask_login import (
@@ -47,6 +48,8 @@ login_manager = LoginManager()
 template_dir = path.abspath("./templates")
 static_dir = path.abspath("./static")
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
+cors = CORS(app)
+app.config["CORS_HEADER"] = "Content-Type"
 app.secret_key = b64decode(environ.get("FLASK_SECRET_KEY"))
 login_manager.init_app(app)
 
@@ -75,6 +78,7 @@ class User(UserMixin):
 
 
 @login_manager.user_loader
+@cross_origin()
 def load_user(username):
     """Load user from DB."""
     user = DB.users.find_one({"username": username})
@@ -85,6 +89,7 @@ def load_user(username):
 
 
 @login_manager.unauthorized_handler
+@cross_origin()
 def unauthorized():
     """Redirect unauthorized users to login page.
     Triggered by @login_required decorator."""
@@ -111,6 +116,7 @@ def unauthorized():
 #         else:
 #             abort(401, "Incorrect password")
 @app.route("/login", methods=["GET", "POST"])
+@cross_origin()
 def login():
     """Invites users to login or click a button
     to go to the account registration page."""
@@ -135,6 +141,7 @@ def login():
 
 @app.route("/change_password", methods=["GET", "POST"])
 @login_required
+@cross_origin()
 def change_password():
     """Accessible from index.html.
     Allows users to change their password."""
@@ -155,6 +162,7 @@ def change_password():
 
 
 @app.route("/register", methods=["GET", "POST"])
+@cross_origin()
 def register():
     """Accessible from login.html.
     Invites users to register an account."""
@@ -173,6 +181,7 @@ def register():
 
 
 @app.route("/logout")
+@cross_origin()
 @login_required
 def logout():
     """Accessible from index.html.
@@ -181,6 +190,7 @@ def logout():
     return redirect("/login")
 
 @app.route("/")
+@cross_origin()
 @login_required
 def index():
     """Homepage, gives options to choose a plan/draft or create a new plan"""
@@ -200,6 +210,7 @@ def index():
 
 
 @app.route("/plan/<plan_id>")
+@cross_origin()
 @login_required
 def view_plan(plan_id):
     """Accessible from index.html, or after certain actions.
@@ -232,6 +243,7 @@ def delete_plan(plan_id):
     return redirect("/")
 
 @app.route("/create_plan", methods=["GET"])
+@cross_origin()
 @login_required
 def create_plan():
     """Accessible from index.html.
@@ -240,6 +252,7 @@ def create_plan():
         return render_template("create_plan.html")
 
 @app.route("/edit_plan/<plan_id>")
+@cross_origin()
 @login_required
 def edit_plan(plan_id):
     """Accessible from plan.html.
@@ -254,6 +267,7 @@ def edit_plan(plan_id):
     return render_template("edit_plan.html", **plan)
 
 @app.route("/save_draft", methods=["POST"])
+@cross_origin()
 @login_required
 def save_draft():
     """Updates existing draft with new draft data (does not create new one).
@@ -271,6 +285,7 @@ def save_draft():
     return redirect("/")
 
 @app.route("/finalize_draft", methods=["POST"])
+@cross_origin()
 @login_required
 def finalize_draft():
     """Accessible via "save as file" button on edit_plan.html.
@@ -288,6 +303,7 @@ def finalize_draft():
     return redirect(f"/settings/{request.form.get('id')}")
 
 @app.route("/submit_plan", methods=["POST"])
+@cross_origin()
 @login_required
 def submit_plan():
     """Accessible via "save as file" button on create_plan.html.
@@ -325,6 +341,7 @@ def submit_plan():
     return redirect(f"/settings/{oidtob62(oid)}")
 
 @app.route("/settings/<plan_id>", methods=["GET", "POST"])
+@cross_origin()
 @login_required
 def settings(plan_id):
     """Settings page for a plan."""
@@ -358,6 +375,7 @@ def settings(plan_id):
             )
 
 @app.route("/set_lock/<plan_id>", methods=["GET", "POST"])
+@cross_origin()
 @login_required
 def set_lock(plan_id):
     """Page to set lock duration."""
