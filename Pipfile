@@ -17,6 +17,8 @@ python-dotenv = "*"
 requests = "*"
 flask-login = "*"
 argon2-cffi = "*"
+npx = "*"
+flask_cors = "*"
 
 [dev-packages]
 
