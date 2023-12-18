@@ -52,7 +52,7 @@ cors = CORS(app)
 app.config["CORS_HEADER"] = "Content-Type"
 app.secret_key = b64decode(environ.get("FLASK_SECRET_KEY"))
 login_manager.init_app(app)
-
+print('environ', environ.get('MONGO_USERNAME'))
 
 def main():
     """Connect to DB and run app."""

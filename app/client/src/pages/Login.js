@@ -1,32 +1,29 @@
 import '../App.css';
 import React, {useState} from 'react';
-import axios from 'axios';
+import { Form, Input, Button } from "antd";
+
+import request from '../utils';
 import { useNavigate } from 'react-router-dom';
-import Cookies from 'universal-cookie';
 
-
-axios.defaults.withCredentials = true;
 
 function Login() {
-    const [data, setData] = useState({
-      email: "",
-      password: ""
-    });
+    
     const navigate = useNavigate();
 
-    function handleLogin(e) {
-      e.preventDefault();
-      axios
-      .post('http://localhost:443/api/login', data)
+    function handleLogin(data) {
+
+      const formData = new FormData();
+      formData.append('username', data.email);
+      formData.append('password', data.password);
+      request
+        .post('/login', formData)
       .then((res) => {
         const status = res['data']['key'];
 
         console.log(status, res);
         if (res['data']['key'] === 'success') {
-          console.log(data, 'cookie');
-          const cookies = new Cookies();
-          cookies.set('email', data['email']);
-          navigate('/dashboard');
+          localStorage.setItem('username', 'xx')
+          navigate('/');
         }
       })
       .catch(err => {
@@ -34,24 +31,39 @@ function Login() {
       });
     }
 
-    function handleInput(e) {
-      const newData={...data};
-      newData[e.target.id] = e.target.value;
-      setData(newData);
-    }
-    
 
     return ( 
       <div id="login" className="login">
         <body>
           <h1 id="title">Login</h1>
-          <div className="form1" id="form1">
-            <form onSubmit={(e) => handleLogin(e)}>
-            <input type="text" onChange={(e) => handleInput(e)} className="email" name="email" value={data.email} id="email" placeholder="Email"/> 
-            <input type="text" onChange={(e) => handleInput(e)} className="password" name="password" value={data.password} id="password" placeholder="Password"/> 
-            <input id="Login" className="Login" type="submit" value="Login"/> 
-            </form>
-          </div>
+          
+          <Form name="login-form" labelCol={{ span: 5 }} onFinish={handleLogin}>
+              <Form.Item
+                name="email"
+                label=""
+                rules={[{ required: true, message: "Please enter the Email" }]}
+              >
+              <Input placeholder="Enter the Email" />
+              </Form.Item>
+
+              <Form.Item
+                name="password"
+                label=""
+                rules={[{ required: true, message: "Please enter the Password" }]}
+              >
+                <Input placeholder="Enter the Password" />
+              </Form.Item>
+
+            <Form.Item
+             
+            >
+              <Button style={{ width:'100%'}} type="primary" htmlType="submit">
+                Submit
+              </Button>
+            </Form.Item>
+
+            </Form>
+       
         </body>
       </div>
     );
