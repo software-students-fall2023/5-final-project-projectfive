@@ -191,7 +191,7 @@ def logout():
 def index():
     """Homepage, gives options to choose a plan/draft or create a new plan"""
     # Find all plans with the flag "delete_me" set to True (cleans up interrupted sessions)
-    DB.plans.delete_many({"username": current_user.username, "delete_me": True})
+    #DB.plans.delete_many({"username": current_user.username, "delete_me": True})
     params = {"username": current_user.username}
     params["plans"] = DB.plans.find(
         {"username": current_user.username, "draft": False}
@@ -314,6 +314,7 @@ def submit_plan():
                 "username": current_user.username,
                 "name": name,
                 "content": content,
+                "created": datetime.datetime.now(),
                 "draft": True,
                 "locked": False,
                 "private": False,
@@ -321,7 +322,6 @@ def submit_plan():
             }
         ).inserted_id
         return redirect(f"/plan/{oidtob62(oid)}")
-    # Plan is already finalized, insert directly
     oid = DB.plans.insert_one(
         {
             "username": current_user.username,
@@ -388,7 +388,6 @@ def set_lock(plan_id):
             abort(400, "Missing duration")
         timenow = datetime.datetime.now()
         duration = datetime.timedelta(days=int(duration))
-        
         # Plan is finalized
         DB.plans.update_one(
             {"_id": b62tooid(plan_id)},
