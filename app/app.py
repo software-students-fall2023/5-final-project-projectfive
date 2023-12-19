@@ -393,3 +393,6 @@ def set_lock(plan_id):
             }},
         )
         return redirect("/")
+
+if __name__ == "__main__":
+    main()

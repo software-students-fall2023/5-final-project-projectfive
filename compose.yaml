@@ -1,24 +1,27 @@
 services:
   notifier:
-    image: teamprojectfive/notifier:latest
+    image: projectfive/notifier:latest.jz-template
     environment:
       - MONGO_USERNAME=${MONGO_USERNAME}
       - MONGO_PASSWORD=${MONGO_PASSWORD}
     depends_on:
       - mongo
       - app
+    platform: linux/x86_64
   app:
-    image: teamprojectfive/app:latest
+    image: projectfive/app:latest.jz-template
     ports:
-      - "443:443"
+      - "5000:5000"
     volumes:
       - ./certs:/certs
     environment:
       - MONGO_USERNAME=${MONGO_USERNAME}
       - MONGO_PASSWORD=${MONGO_PASSWORD}
+      - DEBUG=${DEBUG}
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
     depends_on:
       - mongo
-
+    platform: linux/x86_64
   mongo:
     image: mongo:latest
     container_name: mongo
