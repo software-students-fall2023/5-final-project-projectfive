@@ -193,14 +193,14 @@ def logout():
 def index():
     """Homepage, gives options to choose a plan/draft or create a new plan"""
     # Find all plans with the flag "delete_me" set to True (cleans up interrupted sessions)
-    #DB.plans.delete_many({"username": current_user.username, "delete_me": True})
+    DB.plans.delete_many({"username": current_user.username, "delete_me": True})
     params = {"username": current_user.username}
-    params["plans"] = DB.plans.find(
+    params["plans"] = list(DB.plans.find(
         {"username": current_user.username, "draft": False}
-    ).sort("created", -1)
-    params["drafts"] = DB.plans.find(
+    ).sort("created", -1))
+    params["drafts"] = list(DB.plans.find(
         {"username": current_user.username, "draft": True}
-    ).sort("created", -1)
+    ).sort("created", -1))
     for plan_type in ("plans", "drafts"):
         for plan in params[plan_type]:
             plan["id"] = oidtob62(plan["_id"])
@@ -360,7 +360,7 @@ def settings(plan_id):
             return redirect(f"/set_lock/{plan_id}")
         else:
             # Plan is finalized
-            DB.plan.update_one(
+            DB.plans.update_one(
                 {"_id": b62tooid(plan_id)},
                 {"$set": {
                     "locked": False, 
