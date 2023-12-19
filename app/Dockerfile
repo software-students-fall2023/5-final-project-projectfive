@@ -5,6 +5,7 @@ COPY /Pipfile.lock .
 
 RUN pip install pipenv
 RUN apt-get update
+RUN apt-get install -y python-setuptools
 RUN pipenv install --system --deploy --verbose
 
 COPY /app .
