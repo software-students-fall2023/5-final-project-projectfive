@@ -7,6 +7,7 @@ from base64 import b64decode
 import base62
 from pymongo import MongoClient
 import argon2
+from re import match
 
 from flask import Flask, abort, render_template, request, redirect
 from flask_login import (
@@ -154,6 +155,8 @@ def change_password():
         return redirect("/logout")
 
 
+pattern = r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     """Accessible from login.html.
@@ -165,6 +168,8 @@ def register():
         password = request.form.get("password")
         if not username or not password:
             abort(400, "Missing username or password")
+        elif not match(pattern, username):
+            abort(400, "Username must be email")
         elif DB.users.find_one({"username": username}):
             abort(409, "Username already taken")
         else:
