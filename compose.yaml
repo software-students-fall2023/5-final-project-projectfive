@@ -11,7 +11,7 @@ services:
   app:
     image: projectfive/app:latest
     ports:
-      - "443:443"
+      - "80:80"
     volumes:
       - ./certs:/certs
     environment:

@@ -62,8 +62,8 @@ def main():
     print(client, DB)
     app.run(
         host="0.0.0.0",
-        port=443,
-        ssl_context=("certs/cert.pem", "certs/privkey.pem"),
+        port=80,
+        #ssl_context=("certs/cert.pem", "certs/privkey.pem"),
     )
 
 
