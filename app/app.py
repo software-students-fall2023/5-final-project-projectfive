@@ -95,26 +95,6 @@ def unauthorized():
     Triggered by @login_required decorator."""
     return redirect("/login")
 
-
-# @app.route("/login", methods=["GET", "POST"])
-# def login():
-#     """Invites users to login or click a button
-#     to go to the account registration page."""
-#     if request.method == "GET":
-#         return render_template("login.html")
-#     if request.method == "POST":
-#         username = request.form.get("username")
-#         password = request.form.get("password")
-#         if not username or not password:
-#             abort(400, "Missing username or password")  # bad request
-#         user = DB.users.find_one({"username": username})
-#         if user and Hasher.verify(user["pwhash"], password):
-#             login_user(User(username, user["pwhash"]))
-#             return redirect("/")
-#         elif not user:
-#             abort(401, "User not found")
-#         else:
-#             abort(401, "Incorrect password")
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """Invites users to login or click a button

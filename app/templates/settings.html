@@ -11,13 +11,14 @@
   </head>
   <body>
     <form action="/settings/{{ id }}" method="post">
+      <p>Private:</p>
       <label>Private</label>
       <input type="radio" id="yes_private" name="private" value="Yes" />
       <label for="yes_private">Yes</label>
 
       <input type="radio" id="no_private" name="private" value="No" />
       <label for="no_private">No</label>
-
+      <p>Locked:</p>
       <label>Locked</label>
       <input type="radio" id="yes_locked" name="locked" value="Yes" />
       <label for="yes_locked">Yes</label>
