@@ -11,21 +11,25 @@
   </head>
   <body>
     <form action="/settings/{{ id }}" method="post">
-      <label>Private</label>
-      <input type="radio" id="yes_private" name="private" value="Yes" />
-      <label for="yes_private">Yes</label>
+      <h3>Private</h3>
 
-      <input type="radio" id="no_private" name="private" value="No" />
-      <label for="no_private">No</label>
+      <div class="container">
+        <input type="radio" id="yes_private" name="private" value="Yes" />
+        <label for="yes_private">Yes</label>
 
-      <label>Locked</label>
-      <input type="radio" id="yes_locked" name="locked" value="Yes" />
-      <label for="yes_locked">Yes</label>
+        <input type="radio" id="no_private" name="private" value="No" />
+        <label for="no_private">No</label>
+      </div>
 
-      <input type="radio" id="no_locked" name="locked" value="No" />
-      <label for="no_locked">No</label>
+      <h3>Locked</h3>
+      <div class="container">
+        <input type="radio" id="yes_locked" name="locked" value="Yes" />
+        <label for="yes_locked">Yes</label>
 
-      <input type="submit" value="Save Settings">
+        <input type="radio" id="no_locked" name="locked" value="No" />
+        <label for="no_locked">No</label>
+      </div>
+      <input type="submit" value="Save Settings" />
     </form>
   </body>
 </html>

@@ -14,25 +14,26 @@
       <h1>Welcome to Your Dashboard, {{username}}</h1>
       <nav>
         <ul>
-          <li><a href="/create_plan">Create New Plan</a></li>
-          <li><a href="/change_password">Change Password</a></li>
-          <li><a href="/logout">Logout</a></li>
+          <a href="/create_plan">Create New Plan</a>
+          <a href="/change_password">Change Password</a>
+          <a href="/logout">Logout</a>
         </ul>
 
         <h2>Plan</h2>
         <ul>
           {% for plan in plans %}
-          <li><a href="/plan/{{ plan.id }}"> {{ plan.name }} </a></li>
+          <a href="/plan/{{ plan.id }}"> {{ plan.name }} </a>
           {% endfor %}
         </ul>
 
         <h2>Draft</h2>
         <ul>
           {% for draft in drafts %}
-          <li><a href="/plan/{{ draft.id }}"> {{ draft.name }} </a></li>
+          <a href="/plan/{{ draft.id }}"> {{ draft.name }} </a>
           {% endfor %}
         </ul>
       </nav>
+      <img src="../static/images/dashboard.svg" alt="dashboard-icon" id="hp">
     </div>
   </body>
 </html>

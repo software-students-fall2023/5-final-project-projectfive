@@ -11,10 +11,11 @@
   </head>
   <body>
     <form action="/set_lock/{{ id }}" method="post">
-      <input type="text" id="duration" name="duration" value="duration" />
+      <input type="text" id="duration" name="duration" placeholder="duration" />
       <label for="duration">Duration (in days)</label>
 
       <input type="submit" value="Set Lock">
     </form>
+    <img src="../static/images/clock.svg" alt="clock-icon" id="hp">
   </body>
 </html>
