@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <h1>Welcome to Your Dashboard</h1>
+        <nav>
+            <ul>
+                <li><a href="/create_plan">Create New Plan</a></li>
+                <!-- Add links for each plan the user has. You will need to pass the list of plans from your Flask app -->
+                <!-- Example: <li><a href="/plan/plan_id_here">View Plan: PlanName</a></li> -->
+                <li><a href="/change_password">Change Password</a></li>
+                <li><a href="/logout">Logout</a></li>
+            </ul>
+        </nav>
+    </div>
+</body>
+</html>
