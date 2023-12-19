@@ -59,8 +59,9 @@ def main():
         f"mongodb://{environ.get('MONGO_USERNAME')}:{environ.get('MONGO_PASSWORD')}@mongo"
     )
     DB = client["DB"]
+    print(client, DB)
     # SECURITY: Production will use SSL. This is only for development.
-    app.run(host="0.0.0.0", port=443, debug=should_debug())
+    app.run(host="0.0.0.0", port=5000, debug=should_debug())
 
 
 class User(UserMixin):
