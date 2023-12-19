@@ -147,7 +147,9 @@ def change_password():
         new_password = request.form.get("new_password")
         if not old_password or not new_password:
             abort(400, "Missing old or new password")
-        if not Hasher.verify(current_user.pwhash, old_password):
+        try:
+            Hasher.verify(current_user.pwhash, old_password)
+        except argon2.exceptions.VerifyMismatchError:
             abort(401, "Incorrect password")
         DB.users.update_one(
             {"username": current_user.username},
