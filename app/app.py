@@ -387,12 +387,13 @@ def set_lock(plan_id):
             abort(400, "Missing duration")
         timenow = datetime.datetime.now()
         duration = datetime.timedelta(days=int(duration))
+        
         # Plan is finalized
         DB.plans.update_one(
             {"_id": b62tooid(plan_id)},
             {"$set": {
                 "locked": True,
-                "duration": duration,
+                "duration": duration.days,
                 "created": timenow,
                 "unlock_at": timenow + duration,
                 "draft": False,
