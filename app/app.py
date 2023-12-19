@@ -7,6 +7,7 @@ from base64 import b64decode
 import base62
 from pymongo import MongoClient
 import argon2
+from re import match
 
 from flask import Flask, abort, render_template, request, redirect
 from flask_login import (
@@ -55,11 +56,12 @@ def main():
     """Connect to DB and run app."""
     global DB
     client = MongoClient(
-        f"mongodb://{environ.get('MONGO_USERNAME')}:{environ.get('MONGO_PASSWORD')}@mongo"
+        f"mongodb://{environ.get('MONGO_USERNAME')}:{environ.get('MONGO_PASSWORD')}@mongo?authSource=admin"
     )
     DB = client["DB"]
+    print(client, DB)
     # SECURITY: Production will use SSL. This is only for development.
-    app.run(host="0.0.0.0", port=443, debug=should_debug())
+    app.run(host="0.0.0.0", port=5000, debug=should_debug(), ssl_context=("certs/cert.pem", "certs/privkey.pem"))
 
 
 class User(UserMixin):
@@ -145,7 +147,9 @@ def change_password():
         new_password = request.form.get("new_password")
         if not old_password or not new_password:
             abort(400, "Missing old or new password")
-        if not Hasher.verify(current_user.pwhash, old_password):
+        try:
+            Hasher.verify(current_user.pwhash, old_password)
+        except argon2.exceptions.VerifyMismatchError:
             abort(401, "Incorrect password")
         DB.users.update_one(
             {"username": current_user.username},
@@ -153,6 +157,8 @@ def change_password():
         )
         return redirect("/logout")
 
+
+pattern = r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -165,6 +171,8 @@ def register():
         password = request.form.get("password")
         if not username or not password:
             abort(400, "Missing username or password")
+        elif not match(pattern, username):
+            abort(400, "Username must be email")
         elif DB.users.find_one({"username": username}):
             abort(409, "Username already taken")
         else:
@@ -187,12 +195,12 @@ def index():
     # Find all plans with the flag "delete_me" set to True (cleans up interrupted sessions)
     DB.plans.delete_many({"username": current_user.username, "delete_me": True})
     params = {"username": current_user.username}
-    params["plans"] = DB.plans.find(
+    params["plans"] = list(DB.plans.find(
         {"username": current_user.username, "draft": False}
-    ).sort("created", -1)
-    params["drafts"] = DB.plans.find(
+    ).sort("created", -1))
+    params["drafts"] = list(DB.plans.find(
         {"username": current_user.username, "draft": True}
-    ).sort("created", -1)
+    ).sort("created", -1))
     for plan_type in ("plans", "drafts"):
         for plan in params[plan_type]:
             plan["id"] = oidtob62(plan["_id"])
@@ -203,12 +211,13 @@ def index():
 @login_required
 def view_plan(plan_id):
     """Accessible from index.html, or after certain actions.
-    Views a plan if possible.
+    Views a plan if possible
     If plan is a draft, a button to edit the draft is shown.
     If plan is a draft, unlocked, or reached the unlock time, show a delete button."""
-    plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
+    plan = DB.plans.find_one({"_id": b62tooid(plan_id)})    
     if not plan:
         abort(404, "Plan not found")
+    plan["id"] = plan_id
     if plan["private"] and plan["username"] != current_user.username:
         abort(403, "Plan is private")
     if plan["locked"] and datetime.datetime.now() < plan["unlock_at"]:
@@ -223,6 +232,7 @@ def delete_plan(plan_id):
     plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
     if not plan:
         abort(404, "Plan not found")
+    plan["id"] = plan_id
     if plan["username"] != current_user.username:
         abort(403, "You do not own this plan")
     if plan["draft"] or not plan["locked"] or (plan["locked"] and
@@ -247,6 +257,7 @@ def edit_plan(plan_id):
     plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
     if not plan:
         abort(404, "Plan not found")
+    plan["id"] = plan_id
     if plan["username"] != current_user.username:
         abort(403, "You do not own this plan")
     if not plan["draft"]:
@@ -305,13 +316,14 @@ def submit_plan():
                 "username": current_user.username,
                 "name": name,
                 "content": content,
+                "created": datetime.datetime.now(),
                 "draft": True,
+                "locked": False,
                 "private": False,
                 "delete_me": False,
             }
         ).inserted_id
         return redirect(f"/plan/{oidtob62(oid)}")
-    # Plan is already finalized, insert directly
     oid = DB.plans.insert_one(
         {
             "username": current_user.username,
@@ -331,6 +343,7 @@ def settings(plan_id):
     plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
     if not plan:
         abort(404, "Plan not found")
+    plan["id"] = plan_id
     if plan["username"] != current_user.username:
         abort(403, "You do not own this plan")
     if request.method == "GET":
@@ -347,7 +360,7 @@ def settings(plan_id):
             return redirect(f"/set_lock/{plan_id}")
         else:
             # Plan is finalized
-            DB.plan.update_one(
+            DB.plans.update_one(
                 {"_id": b62tooid(plan_id)},
                 {"$set": {
                     "locked": False, 
@@ -356,6 +369,7 @@ def settings(plan_id):
                     "draft": False,
                 }},
             )
+        return redirect("/")
 
 @app.route("/set_lock/<plan_id>", methods=["GET", "POST"])
 @login_required
@@ -366,6 +380,7 @@ def set_lock(plan_id):
         abort(404, "Plan not found")
     if plan["username"] != current_user.username:
         abort(403, "You do not own this plan")
+    plan["id"] = plan_id
     if request.method == "GET":
         return render_template("set_lock.html", **plan)
     if request.method == "POST":
@@ -380,7 +395,7 @@ def set_lock(plan_id):
             {"_id": b62tooid(plan_id)},
             {"$set": {
                 "locked": True,
-                "duration": duration,
+                "duration": duration.days,
                 "created": timenow,
                 "unlock_at": timenow + duration,
                 "draft": False,
@@ -388,3 +403,6 @@ def set_lock(plan_id):
             }},
         )
         return redirect("/")
+
+if __name__ == "__main__":
+    main()

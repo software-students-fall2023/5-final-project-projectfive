@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Dashboard</title>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <h1>Welcome to Your Dashboard, {{username}}</h1>
+      <nav>
+        <ul>
+          <li><a href="/create_plan">Create New Plan</a></li>
+          <li><a href="/change_password">Change Password</a></li>
+          <li><a href="/logout">Logout</a></li>
+        </ul>
+
+        <h2>Plan</h2>
+        <ul>
+          {% for plan in plans %}
+          <li><a href="/plan/{{ plan.id }}"> {{ plan.name }} </a></li>
+          {% endfor %}
+        </ul>
+
+        <h2>Draft</h2>
+        <ul>
+          {% for draft in drafts %}
+          <li><a href="/plan/{{ draft.id }}"> {{ draft.name }} </a></li>
+          {% endfor %}
+        </ul>
+      </nav>
+    </div>
+  </body>
+</html>
