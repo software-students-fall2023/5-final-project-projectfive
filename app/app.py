@@ -367,6 +367,7 @@ def settings(plan_id):
                     "draft": False,
                 }},
             )
+        return redirect("/")
 
 @app.route("/set_lock/<plan_id>", methods=["GET", "POST"])
 @login_required
