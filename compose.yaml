@@ -1,6 +1,6 @@
 services:
   notifier:
-    image: projectfive/notifier:latest.jz-template
+    image: projectfive/notifier:latest
     environment:
       - MONGO_USERNAME=${MONGO_USERNAME}
       - MONGO_PASSWORD=${MONGO_PASSWORD}
@@ -9,7 +9,7 @@ services:
       - app
     platform: linux/x86_64
   app:
-    image: projectfive/app:latest.jz-template
+    image: projectfive/app:latest
     ports:
       - "5000:5000"
     volumes:
