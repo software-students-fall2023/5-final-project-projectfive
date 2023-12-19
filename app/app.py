@@ -56,7 +56,7 @@ def main():
     """Connect to DB and run app."""
     global DB
     client = MongoClient(
-        f"mongodb://{environ.get('MONGO_USERNAME')}:{environ.get('MONGO_PASSWORD')}@mongo"
+        f"mongodb://{environ.get('MONGO_USERNAME')}:{environ.get('MONGO_PASSWORD')}@mongo?authSource=admin"
     )
     DB = client["DB"]
     print(client, DB)
