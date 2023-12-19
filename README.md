@@ -44,9 +44,9 @@ All images are also tagged with a UNIX timestamp and the commit hash which trigg
 
 ## Team Members
 
-[Michael Lin <mal9608@nyu.edu>](https://github.com/freerainboxbox)
-[Erick Cho <ec3566@nyu.edu>](https://github.com/ec3566)
-[Juliann Zhou <kyz224@nyu.edu>](https://github.com/juliannzhou)
+[Michael Lin <mal9608@nyu.edu>](https://github.com/freerainboxbox)  
+[Erick Cho <ec3566@nyu.edu>](https://github.com/ec3566)  
+[Juliann Zhou <kyz224@nyu.edu>](https://github.com/juliannzhou)  
 [Fuzhen Li <fl2097@nyu.edu>](https://github.com/fzfzlfz)
 
 ## Getting Started
