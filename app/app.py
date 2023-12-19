@@ -209,13 +209,13 @@ def index():
 @login_required
 def view_plan(plan_id):
     """Accessible from index.html, or after certain actions.
-    Views a plan if possible.
+    Views a plan if possible
     If plan is a draft, a button to edit the draft is shown.
     If plan is a draft, unlocked, or reached the unlock time, show a delete button."""
-    plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
-    plan["id"] = plan_id
+    plan = DB.plans.find_one({"_id": b62tooid(plan_id)})    
     if not plan:
         abort(404, "Plan not found")
+    plan["id"] = plan_id
     if plan["private"] and plan["username"] != current_user.username:
         abort(403, "Plan is private")
     if plan["locked"] and datetime.datetime.now() < plan["unlock_at"]:
@@ -228,9 +228,9 @@ def view_plan(plan_id):
 def delete_plan(plan_id):
     """Delete a plan."""
     plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
-    plan["id"] = plan_id
     if not plan:
         abort(404, "Plan not found")
+    plan["id"] = plan_id
     if plan["username"] != current_user.username:
         abort(403, "You do not own this plan")
     if plan["draft"] or not plan["locked"] or (plan["locked"] and
@@ -253,9 +253,9 @@ def edit_plan(plan_id):
     """Accessible from plan.html.
     Edit a draft plan."""
     plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
-    plan["id"] = plan_id
     if not plan:
         abort(404, "Plan not found")
+    plan["id"] = plan_id
     if plan["username"] != current_user.username:
         abort(403, "You do not own this plan")
     if not plan["draft"]:
@@ -339,9 +339,9 @@ def submit_plan():
 def settings(plan_id):
     """Settings page for a plan."""
     plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
-    plan["id"] = plan_id
     if not plan:
         abort(404, "Plan not found")
+    plan["id"] = plan_id
     if plan["username"] != current_user.username:
         abort(403, "You do not own this plan")
     if request.method == "GET":
@@ -373,11 +373,11 @@ def settings(plan_id):
 def set_lock(plan_id):
     """Page to set lock duration."""
     plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
-    plan["id"] = plan_id
     if not plan:
         abort(404, "Plan not found")
     if plan["username"] != current_user.username:
         abort(403, "You do not own this plan")
+    plan["id"] = plan_id
     if request.method == "GET":
         return render_template("set_lock.html", **plan)
     if request.method == "POST":
