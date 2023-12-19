@@ -213,6 +213,7 @@ def view_plan(plan_id):
     If plan is a draft, a button to edit the draft is shown.
     If plan is a draft, unlocked, or reached the unlock time, show a delete button."""
     plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
+    plan["id"] = plan_id
     if not plan:
         abort(404, "Plan not found")
     if plan["private"] and plan["username"] != current_user.username:
