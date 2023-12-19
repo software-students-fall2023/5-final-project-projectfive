@@ -360,7 +360,7 @@ def settings(plan_id):
             return redirect(f"/set_lock/{plan_id}")
         else:
             # Plan is finalized
-            DB.plan.update_one(
+            DB.plans.update_one(
                 {"_id": b62tooid(plan_id)},
                 {"$set": {
                     "locked": False, 
