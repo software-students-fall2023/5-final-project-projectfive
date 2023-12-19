@@ -7,15 +7,26 @@
 </head>
 <body>
     <div class="dashboard-container">
-        <h1>Welcome to Your Dashboard</h1>
+        <h1>Welcome to Your Dashboard, {{username}}</h1>
         <nav>
             <ul>
                 <li><a href="/create_plan">Create New Plan</a></li>
-                <!-- Add links for each plan the user has. You will need to pass the list of plans from your Flask app -->
-                <!-- Example: <li><a href="/plan/plan_id_here">View Plan: PlanName</a></li> -->
                 <li><a href="/change_password">Change Password</a></li>
                 <li><a href="/logout">Logout</a></li>
             </ul>
+
+            <ul>
+                {% for plan in plans %}
+                    <li><a href="/plan/{{ plan.id }}"> {{ plan.name }} </a></li>
+                {% endfor %}
+            </ul>
+            
+            <ul>
+                {% for draft in drafts %}
+                    <li><a href="/plan/{{ draft.id }}"> {{ draft.name }} </a></li>
+                {% endfor %}
+            </ul>
+
         </nav>
     </div>
 </body>
