@@ -312,6 +312,7 @@ def submit_plan():
                 "name": name,
                 "content": content,
                 "draft": True,
+                "locked": False,
                 "private": False,
                 "delete_me": False,
             }
