@@ -61,7 +61,7 @@ def main():
     DB = client["DB"]
     print(client, DB)
     # SECURITY: Production will use SSL. This is only for development.
-    app.run(host="0.0.0.0", port=5000, debug=should_debug())
+    app.run(host="0.0.0.0", port=5000, debug=should_debug(), ssl_context=("certs/cert.pem", "certs/privkey.pem"))
 
 
 class User(UserMixin):
