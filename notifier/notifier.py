@@ -7,7 +7,7 @@ from pymongo import MongoClient
 
 # Create a connection to the MongoDB server
 client = MongoClient(
-    f"mongodb://{environ.get('MONGO_USERNAME')}:{environ.get('MONGO_PASSWORD')}@mongo"
+    f"mongodb://{environ.get('MONGO_USERNAME')}:{environ.get('MONGO_PASSWORD')}@mongo?authSource=admin"
 )
 DB = client["DB"]
 

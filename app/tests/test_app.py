@@ -196,7 +196,7 @@ def test_register_user_taken(client, monkeypatch):
 
     monkeypatch.setattr(app.DB.users, "find_one", mock_find_one)
     response = client.post(
-        "/register", data={"username": "test_user", "password": "test_pass"}
+        "/register", data={"username": "user@example.com", "password": "test_pass"}
     )
 
     assert response.status_code == 409

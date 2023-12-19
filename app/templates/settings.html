@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Settings</title>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    <form action="/settings/{{ id }}" method="post">
+      <label>Private</label>
+      <input type="radio" id="yes_private" name="private" value="Yes" />
+      <label for="yes_private">Yes</label>
+
+      <input type="radio" id="no_private" name="private" value="No" />
+      <label for="no_private">No</label>
+
+      <label>Locked</label>
+      <input type="radio" id="yes_locked" name="locked" value="Yes" />
+      <label for="yes_locked">Yes</label>
+
+      <input type="radio" id="no_locked" name="locked" value="No" />
+      <label for="no_locked">No</label>
+
+      <input type="submit" value="Save Settings">
+    </form>
+  </body>
+</html>
