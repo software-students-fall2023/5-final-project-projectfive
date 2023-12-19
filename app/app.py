@@ -228,6 +228,7 @@ def view_plan(plan_id):
 def delete_plan(plan_id):
     """Delete a plan."""
     plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
+    plan["id"] = plan_id
     if not plan:
         abort(404, "Plan not found")
     if plan["username"] != current_user.username:
@@ -252,6 +253,7 @@ def edit_plan(plan_id):
     """Accessible from plan.html.
     Edit a draft plan."""
     plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
+    plan["id"] = plan_id
     if not plan:
         abort(404, "Plan not found")
     if plan["username"] != current_user.username:
@@ -337,6 +339,7 @@ def submit_plan():
 def settings(plan_id):
     """Settings page for a plan."""
     plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
+    plan["id"] = plan_id
     if not plan:
         abort(404, "Plan not found")
     if plan["username"] != current_user.username:
@@ -370,6 +373,7 @@ def settings(plan_id):
 def set_lock(plan_id):
     """Page to set lock duration."""
     plan = DB.plans.find_one({"_id": b62tooid(plan_id)})
+    plan["id"] = plan_id
     if not plan:
         abort(404, "Plan not found")
     if plan["username"] != current_user.username:
